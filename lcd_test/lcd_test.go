@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -1124,5 +1125,30 @@ func TestAccountBalanceQuery(t *testing.T) {
 	res, body = Request(t, port, "GET", fmt.Sprintf("/bank/balances/%s", someFakeAddr), nil)
 	require.Equal(t, http.StatusOK, res.StatusCode, body)
 	require.Contains(t, body, "[]")
+
+}
+
+func TestExecuteContract(t *testing.T) {
+	kb, err := newKeybase()
+	require.NoError(t, err)
+	addr, _, err := CreateAddr(name1, kb)
+	require.NoError(t, err)
+	cleanup, _, _, port, err := InitializeLCD(1, []sdk.AccAddress{addr}, true)
+	require.NoError(t, err)
+	defer cleanup()
+
+	acc := getAccount(t, port, addr)
+	initialBalance := acc.GetCoins()
+
+	code, err := ioutil.ReadFile("test.txt")
+	require.NoError(t, err)
+	require.NotNil(t, code)
+
+	resultTx := doStoreCode(t, port, name, addr1, halfMinDeposit, fees, kb)
+	bz, err := hex.DecodeString(resultTx.Data)
+	require.NoError(t, err)
+
+	proposalID1 := gov.GetProposalIDFromBytes(bz)
+	tests.WaitForHeight(resultTx.Height+1, port)
 
 }

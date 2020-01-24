@@ -31,10 +31,11 @@ import (
 	slashingrest "github.com/cosmos/cosmos-sdk/x/slashing/client/rest"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingrest "github.com/cosmos/cosmos-sdk/x/staking/client/rest"
-
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
+
+	wasmrest "github.com/cosmwasm/wasmd/x/wasm/client/rest"
 )
 
 // Request makes a test LCD test request. It returns a response object and a
@@ -1122,4 +1123,19 @@ func doWithdrawDelegatorAllRewards(
 	require.NoError(t, err)
 
 	return txResp
+}
+
+func doStoreCode(t *testing.T, port, name string, accAddr sdk.AccAddress,
+	amount sdk.Int, fees sdk.Coins,
+	kb crkeys.Keybase,
+) sdk.TxResponse {
+	acc := getAccount(t, port, accAddr)
+	accnum := acc.GetAccountNumber()
+	sequence := acc.GetSequence()
+	chainID := viper.GetString(flags.FlagChainID)
+	from := acc.GetAddress().String()
+
+	baseReq := rest.NewBaseReq(from, "", chainID, "", "", accnum, sequence, fees, nil, false)
+	wasmrest.RegisterRoutes()
+
 }
