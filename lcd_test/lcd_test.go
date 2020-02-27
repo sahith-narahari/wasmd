@@ -1133,22 +1133,21 @@ func TestExecuteContract(t *testing.T) {
 	require.NoError(t, err)
 	addr, _, err := CreateAddr(name1, kb)
 	require.NoError(t, err)
+	t.Log("this is it")
 	cleanup, _, _, port, err := InitializeLCD(1, []sdk.AccAddress{addr}, true)
 	require.NoError(t, err)
 	defer cleanup()
 
 	acc := getAccount(t, port, addr)
-	initialBalance := acc.GetCoins()
+	acc.GetCoins()
 
 	code, err := ioutil.ReadFile("test.txt")
 	require.NoError(t, err)
 	require.NotNil(t, code)
 
-	resultTx := doStoreCode(t, port, name, addr1, halfMinDeposit, fees, kb)
+	resultTx := doStoreCode(t, port, name1, addr, fees, kb)
 	bz, err := hex.DecodeString(resultTx.Data)
 	require.NoError(t, err)
-
-	proposalID1 := gov.GetProposalIDFromBytes(bz)
-	tests.WaitForHeight(resultTx.Height+1, port)
+	t.Log("this is bytes", bz)
 
 }

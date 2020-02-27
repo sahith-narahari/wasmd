@@ -1125,17 +1125,34 @@ func doWithdrawDelegatorAllRewards(
 	return txResp
 }
 
-func doStoreCode(t *testing.T, port, name string, accAddr sdk.AccAddress,
-	amount sdk.Int, fees sdk.Coins,
-	kb crkeys.Keybase,
-) sdk.TxResponse {
+func doStoreCode(t *testing.T, port, name string, accAddr sdk.AccAddress, fees sdk.Coins, kb crkeys.Keybase) sdk.TxResponse {
 	acc := getAccount(t, port, accAddr)
 	accnum := acc.GetAccountNumber()
 	sequence := acc.GetSequence()
 	chainID := viper.GetString(flags.FlagChainID)
 	from := acc.GetAddress().String()
 
+	bytes, err := ioutil.ReadFile("./testdata/escrow.wasm")
+	require.NoError(t, err)
 	baseReq := rest.NewBaseReq(from, "", chainID, "", "", accnum, sequence, fees, nil, false)
-	wasmrest.RegisterRoutes()
+	storeReq := wasmrest.StoreCodeReq{
+		BaseReq:   baseReq,
+		WasmBytes: bytes,
+	}
+
+	req, err := cdc.MarshalJSON(storeReq)
+	require.NoError(t, err)
+
+	resp, body := Request(t, port, "POST", "/wasm/code", req)
+	require.Equal(t, http.StatusOK, resp.StatusCode, body)
+
+	resp, body = signAndBroadcastGenTx(t, port, name, body, acc, flags.DefaultGasAdjustment, false, kb)
+	require.Equal(t, http.StatusOK, resp.StatusCode, body)
+
+	var txResp sdk.TxResponse
+	err = cdc.UnmarshalJSON([]byte(body), &txResp)
+	require.NoError(t, err)
+
+	return txResp
 
 }
